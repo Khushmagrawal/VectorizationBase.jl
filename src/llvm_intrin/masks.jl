@@ -918,34 +918,8 @@ end
   x::AbstractSIMD{W,T}
 ) where {W,T<:Union{Integer,StaticInt}} = (x & one(T)) == zero(T)
 
-@generated function vifelse(
-  m::Vec{W,Bool},
-  v1::Vec{W,T},
-  v2::Vec{W,T}
-) where {W,T}
-  typ = LLVM_TYPES[T]
-  vtyp = vtype(W, typ)
-  selty = vtype(W, "i1")
-  f = "select"
-  if Base.libllvm_version ≥ v"9" && ((T === Float32) || (T === Float64))
-    f *= " nsz arcp contract reassoc"
-  end
-  instrs = String["%mask.0 = trunc <$W x i8> %0 to <$W x i1>"]
-  push!(instrs, "%res = $f $selty %mask.0, $vtyp %1, $vtyp %2\nret $vtyp %res")
-  quote
-    $(Expr(:meta, :inline))
-    Vec(
-      $LLVMCALL(
-        $(join(instrs, "\n")),
-        _Vec{$W,$T},
-        Tuple{_Vec{$W,Bool},_Vec{$W,$T},_Vec{$W,$T}},
-        data(m),
-        data(v1),
-        data(v2)
-      )
-    )
-  end
-end
+@inline vifelse(m::Vec{W,Bool}, v1::Vec{W,T}, v2::Vec{W,T}) where {W,T} = 
+    vifelse(m != zero(m), v1, v2)
 @inline vifelse(b::Bool, w, x) = ((y, z) = promote(w, x); vifelse(b, y, z))
 @inline vifelse(
   b::Bool,

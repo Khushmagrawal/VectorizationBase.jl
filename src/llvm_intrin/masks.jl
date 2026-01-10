@@ -918,7 +918,9 @@ end
   x::AbstractSIMD{W,T}
 ) where {W,T<:Union{Integer,StaticInt}} = (x & one(T)) == zero(T)
 
-@inline vifelse(m::AbstractSIMD{W,Bool}, v1, v2) where {W} = 
+@inline vifelse(m::Vec{W,Bool}, v1::Vec{W,T}, v2::Vec{W,T}) where {W,T} = 
+    vifelse(m != zero(m), v1, v2)
+@inline vifelse(m::VecUnroll{N,W,Bool}, v1::VecUnroll{N,W,T}, v2::VecUnroll{N,W,T}) where {N,W,T} = 
     vifelse(m != zero(m), v1, v2)
 @inline vifelse(b::Bool, w, x) = ((y, z) = promote(w, x); vifelse(b, y, z))
 @inline vifelse(

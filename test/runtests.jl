@@ -415,10 +415,25 @@ include("testsetup.jl")
             )
           )
 
-  let  W = VectorizationBase.pick_vector_width(Float64)
-    vb = Vec(ntuple(i -> isodd(i), W)...)
+  let W = VectorizationBase.pick_vector_width(Float64)
+    # 1. Create a Vector{Bool} in memory (stored as Int8: 0 and 1)
+    bool_data = Vector{Bool}(undef, W)
+    for i in 1:W
+      bool_data[i] = isodd(i)
+    end
+    
+    # 2. Load it as a vector of Bytes (Vec{W, UInt8})
+    ptr = VectorizationBase.stridedpointer(bool_data)
+    vb_bytes = VectorizationBase.vload(ptr, (VectorizationBase.StaticInt(1),))
+
+    # 3. Reinterpret to Vec{W, Bool} without processing
+    # This passes the raw 0x01 bytes into vifelse, triggering the 'trunc' bug
+    vb = reinterpret(VectorizationBase.Vec{W, Bool}, vb_bytes)
+
     v1 = Vec(ntuple(_ -> 10.0, W)...)
     v2 = Vec(ntuple(_ -> 20.0, W)...)
+
+    # 4. Perform selection (Should fail if trunc is used)
     @test tovector(@inferred(VectorizationBase.vifelse(vb, v1, v2))) ==
           [isodd(i) ? 10.0 : 20.0 for i ∈ 1:W]
   end

@@ -415,7 +415,7 @@ include("testsetup.jl")
             )
           )
 
-    W = VectorizationBase.pick_vector_width(Float64)
+  let  W = VectorizationBase.pick_vector_width(Float64)
     vb = Vec(ntuple(i -> isodd(i), W)...)
     v1 = Vec(ntuple(_ -> 10.0, W)...)
     v2 = Vec(ntuple(_ -> 20.0, W)...)

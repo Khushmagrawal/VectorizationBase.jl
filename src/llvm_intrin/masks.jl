@@ -930,7 +930,7 @@ end
   if Base.libllvm_version ≥ v"9" && ((T === Float32) || (T === Float64))
     f *= " nsz arcp contract reassoc"
   end
-  instrs = String["%mask.0 = icmp ne <$W x i8> %0, zeroinitializer"]
+  instrs = String["%mask.0 = trunc <$W x i8> %0 to <$W x i1>"]
   push!(instrs, "%res = $f $selty %mask.0, $vtyp %1, $vtyp %2\nret $vtyp %res")
   quote
     $(Expr(:meta, :inline))

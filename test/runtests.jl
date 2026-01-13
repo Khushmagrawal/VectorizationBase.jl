@@ -232,25 +232,6 @@ include("testsetup.jl")
     ptr = pointer(a)
     @test UInt(VectorizationBase.align(ptr, 1 << 12)) % (1 << 12) == 0
   end
-
-  let
-      W_reg = VectorizationBase.pick_vector_width(Float64)
-      # Create a Vec{Bool} mask: true, false, true, false...
-      bool_tuple = ntuple(i -> isodd(i), Val(Int(W_reg)))
-      vb = Vec(bool_tuple...) # Vec{W, Bool}
-      
-      # Create values to select
-      v1 = Vec(ntuple(_ -> 10.0, Val(Int(W_reg)))...)
-      v2 = Vec(ntuple(_ -> 20.0, Val(Int(W_reg)))...)
-      
-      # Perform selection
-      vres = VectorizationBase.vifelse(vb, v1, v2)
-      
-      # Verify
-      expected_tuple = ntuple(i -> bool_tuple[i] ? 10.0 : 20.0, Val(Int(W_reg)))
-      @test tovector(vres) == collect(expected_tuple)
-  end
-
   println("masks.jl")
   @time @testset "masks.jl" begin
     # @test Mask{8,UInt8}(0x0f) === @inferred Mask(0x0f)
@@ -433,6 +414,14 @@ include("testsetup.jl")
               vbroadcast(Val(8), false)
             )
           )
+
+    W = VectorizationBase.pick_vector_width(Float64)
+    vb = Vec(ntuple(i -> isodd(i), W)...)
+    v1 = Vec(ntuple(_ -> 10.0, W)...)
+    v2 = Vec(ntuple(_ -> 20.0, W)...)
+    @test tovector(@inferred(VectorizationBase.vifelse(vb, v1, v2))) ==
+          [isodd(i) ? 10.0 : 20.0 for i ∈ 1:W]
+  end
 
     @test (MM{8}(2) ∈ 3:8) === Mask{8}(0x7e)
 
